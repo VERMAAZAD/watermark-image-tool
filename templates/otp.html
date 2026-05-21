@@ -216,90 +216,86 @@
 </div>
 
 <script>
-  // ── TIMER ──
-  const TOTAL = parseInt(document.getElementById('timerData').dataset.remaining, 10);
-  let left = TOTAL;
+  // ── TIMER (only runs when timer elements exist) ──
+  const timerData = document.getElementById('timerData');
   const bar = document.getElementById('timerBar');
   const txt = document.getElementById('timerText');
+  const TOTAL = timerData ? parseInt(timerData.dataset.remaining, 10) || 0 : 0;
+  let left = TOTAL;
 
   function tick() {
     left--;
     if (left <= 0) {
-      bar.style.width = '0%';
-      bar.style.background = 'var(--red)';
-      txt.textContent = 'Expired';
-      txt.className = 'timer-text critical';
-      document.getElementById('verifyBtn').disabled = true;
+      if (bar) { bar.style.width = '0%'; bar.style.background = 'var(--red)'; }
+      if (txt) { txt.textContent = 'Expired'; txt.className = 'timer-text critical'; }
+      const vBtn = document.getElementById('verifyBtn');
+      if (vBtn) vBtn.disabled = true;
       document.querySelectorAll('.otp-digit').forEach(d => d.disabled = true);
       setTimeout(() => window.location.href = '/login', 2000);
       return;
     }
     const pct = (left / TOTAL) * 100;
-    bar.style.width = pct + '%';
-    if (left <= 30) {
-      bar.style.background = 'var(--red)';
-      txt.className = 'timer-text critical';
-    } else if (left <= 60) {
-      bar.style.background = '#f59e0b';
-      txt.className = 'timer-text warn';
+    if (bar) {
+      bar.style.width = pct + '%';
+      if (left <= 30)      bar.style.background = 'var(--red)';
+      else if (left <= 60) bar.style.background = '#f59e0b';
     }
-    const m = Math.floor(left / 60);
-    const s = String(left % 60).padStart(2, '0');
-    txt.textContent = m + ':' + s + ' remaining';
+    if (txt) {
+      txt.className = left <= 30 ? 'timer-text critical' : left <= 60 ? 'timer-text warn' : 'timer-text';
+      const m = Math.floor(left / 60);
+      const s = String(left % 60).padStart(2, '0');
+      txt.textContent = m + ':' + s + ' remaining';
+    }
     setTimeout(tick, 1000);
   }
   if (TOTAL > 0) setTimeout(tick, 1000);
 
-  // ── OTP INPUT LOGIC ──
-  const digits = Array.from({length:6}, (_, i) => document.getElementById('d' + i));
-  const btn = document.getElementById('verifyBtn');
-  const hidden = document.getElementById('otpHidden');
+  // ── OTP INPUT LOGIC (only runs when digit inputs exist) ──
+  const digits = Array.from({length: 6}, (_, i) => document.getElementById('d' + i));
+  if (digits[0]) {
+    const btn    = document.getElementById('verifyBtn');
+    const hidden = document.getElementById('otpHidden');
 
-  function updateSubmit() {
-    const val = digits.map(d => d.value).join('');
-    hidden.value = val;
-    btn.disabled = val.length < 6;
-    digits.forEach(d => d.classList.toggle('filled', d.value !== ''));
-  }
+    function updateSubmit() {
+      const val = digits.map(d => d.value).join('');
+      hidden.value = val;
+      btn.disabled = val.length < 6;
+      digits.forEach(d => d.classList.toggle('filled', d.value !== ''));
+    }
 
-  digits.forEach((input, i) => {
-    input.addEventListener('input', e => {
-      // Allow only digits
-      input.value = input.value.replace(/\D/g, '').slice(-1);
-      updateSubmit();
-      if (input.value && i < 5) digits[i+1].focus();
-    });
-
-    input.addEventListener('keydown', e => {
-      if (e.key === 'Backspace' && !input.value && i > 0) {
-        digits[i-1].value = '';
-        digits[i-1].focus();
+    digits.forEach((input, i) => {
+      input.addEventListener('input', () => {
+        input.value = input.value.replace(/\D/g, '').slice(-1);
         updateSubmit();
-      }
-      // Allow paste handling below
-    });
-
-    input.addEventListener('paste', e => {
-      e.preventDefault();
-      const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
-      text.split('').forEach((ch, idx) => {
-        if (digits[idx]) digits[idx].value = ch;
+        if (input.value && i < 5) digits[i + 1].focus();
       });
-      const next = Math.min(text.length, 5);
-      digits[next].focus();
-      updateSubmit();
-    });
-  });
 
-  // Auto-focus first digit
-  digits[0].focus();
+      input.addEventListener('keydown', e => {
+        if (e.key === 'Backspace' && !input.value && i > 0) {
+          digits[i - 1].value = '';
+          digits[i - 1].focus();
+          updateSubmit();
+        }
+      });
 
-  // Shake digits on error — pure JS, no Jinja inside script
-  if (document.body.dataset.hasError === '1') {
-    digits.forEach(d => {
-      d.classList.add('error-shake');
-      setTimeout(() => d.classList.remove('error-shake'), 400);
+      input.addEventListener('paste', e => {
+        e.preventDefault();
+        const text = (e.clipboardData || window.clipboardData)
+          .getData('text').replace(/\D/g, '').slice(0, 6);
+        text.split('').forEach((ch, idx) => { if (digits[idx]) digits[idx].value = ch; });
+        digits[Math.min(text.length, 5)].focus();
+        updateSubmit();
+      });
     });
+
+    digits[0].focus();
+
+    if (document.body.dataset.hasError === '1') {
+      digits.forEach(d => {
+        d.classList.add('error-shake');
+        setTimeout(() => d.classList.remove('error-shake'), 400);
+      });
+    }
   }
 </script>
 </body>
