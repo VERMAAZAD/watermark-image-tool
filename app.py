@@ -38,7 +38,20 @@ MASTER_EMAIL  = os.environ.get("MASTER_EMAIL", "")
 OTP_EXPIRY    = 300  # 5 minutes
 
 # In-memory OTP store: token -> {otp, expires, username, is_master, display_name}
-OTP_STORE = {}
+OTP_STORE_FILE = "data/otp_store.json"
+
+def load_otp_store():
+    if not os.path.exists(OTP_STORE_FILE):
+        return {}
+    try:
+        with open(OTP_STORE_FILE, "r") as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+def save_otp_store(store):
+    with open(OTP_STORE_FILE, "w") as f:
+        json.dump(store, f)
 
 app = Flask(__name__, static_folder="static")
 CORS(app)
@@ -131,12 +144,14 @@ def send_otp_email(otp, username, is_master):
         return False
 
 def cleanup_otp_store():
-    """Remove expired OTPs periodically."""
     while True:
         now = time.time()
-        expired = [t for t, v in OTP_STORE.items() if v["expires"] < now]
-        for t in expired:
-            OTP_STORE.pop(t, None)
+        store = load_otp_store()
+        expired = [t for t, v in store.items() if v["expires"] < now]
+        if expired:
+            for t in expired:
+                store.pop(t, None)
+            save_otp_store(store)
         time.sleep(60)
 
 # ================== AUTH DECORATORS ==================
@@ -202,12 +217,14 @@ def login():
         if pending:
             # Generate OTP and send email
             otp = generate_otp()
-            token = secrets.token_urlsafe(32)
-            OTP_STORE[token] = {
+            token = secrets.token_hex(32)
+            store = load_otp_store()
+            store[token] = {
                 "otp": otp,
                 "expires": time.time() + OTP_EXPIRY,
                 **pending
             }
+            save_otp_store(store)
             sent = send_otp_email(otp, pending["username"], pending["is_master"])
             if not sent:
                 # If email fails, still show OTP page but warn
@@ -220,23 +237,26 @@ def login():
     return render_template("login.html", error=error)
 
 
-@app.route("/verify-otp/<token>", methods=["GET", "POST"])
+@app.route("/verify-otp/<path:token>", methods=["GET", "POST"])
 def verify_otp(token):
-    entry = OTP_STORE.get(token)
+    store = load_otp_store()
+    entry = store.get(token)
 
     if not entry:
-        return render_template("otp.html", error="Invalid or expired session. Please log in again.", token=token, expired=True)
+        return render_template("otp.html", error="Invalid or expired session. Please log in again.", token=token, expired=True, remaining=0)
 
     if time.time() > entry["expires"]:
-        OTP_STORE.pop(token, None)
-        return render_template("otp.html", error="OTP has expired. Please log in again.", token=token, expired=True)
+        store.pop(token, None)
+        save_otp_store(store)
+        return render_template("otp.html", error="OTP has expired. Please log in again.", token=token, expired=True, remaining=0)
 
     error = ""
     if request.method == "POST":
         submitted = request.form.get("otp", "").strip()
         if submitted == entry["otp"]:
             # OTP correct — create real session
-            OTP_STORE.pop(token, None)
+            store.pop(token, None)
+            save_otp_store(store)
             session["logged_in"] = True
             session["is_master"] = entry["is_master"]
             session["username"] = entry["username"]
@@ -342,7 +362,13 @@ def _update_job_log(job_id, status, error=None):
 
 @app.route("/api/job-status/<job_id>")
 def job_status(job_id):
-    return jsonify(JOBS.get(job_id, {"status": "not_found"}))
+    if job_id in JOBS:
+        return jsonify(JOBS[job_id])
+    log = load_jobs_log()
+    entry = next((j for j in log if j.get("job_id") == job_id), None)
+    if entry:
+        return jsonify({"status": entry.get("status", "unknown")})
+    return jsonify({"status": "not_found"})
 
 @app.route("/api/all-results")
 @login_required
