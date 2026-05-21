@@ -785,4 +785,4 @@ threading.Thread(target=cleanup_old_files, daemon=True).start()
 threading.Thread(target=cleanup_otp_store, daemon=True).start()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8001, debug=True)
+    app.run(host="0.0.0.0", port=8001, debug=False)
