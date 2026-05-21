@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify OTP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600&family=Geist+Mono:wght@500;600&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #ffffff;
+      --surface: #ffffff;
+      --surface-2: #e7e7e7;
+      --border: rgba(255, 255, 255, 0.365);
+      --border-2: rgba(0, 0, 0, 0.14);
+      --text-1: #000;
+      --text-2: #272727;
+      --text-3: #52525b;
+      --accent: #6366f1;
+      --accent-d: #4f46e5;
+      --green: #22c55e;
+      --red: #ef4444;
+      --red-bg: rgba(239,68,68,.08);
+    }
+
+    body {
+      font-family: 'Geist', sans-serif;
+      background: var(--bg);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border-2);
+      border-radius: 18px;
+      padding: 40px 36px;
+      width: 100%;
+      max-width: 420px;
+    }
+
+    .icon-wrap {
+      width: 56px; height: 56px;
+      background: rgba(99,102,241,.12);
+      border: 1px solid rgba(99,102,241,.25);
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 24px;
+      margin-bottom: 22px;
+    }
+
+    h1 {
+      font-size: 20px; font-weight: 600;
+      color: var(--text-1); margin-bottom: 6px;
+      letter-spacing: -.02em;
+    }
+
+    .sub {
+      font-size: 13.5px; color: var(--text-2);
+      line-height: 1.5; margin-bottom: 28px;
+    }
+    .sub strong { color: var(--text-1); }
+
+    /* TIMER */
+    .timer-bar-wrap {
+      background: var(--surface-2);
+      border-radius: 6px; height: 4px;
+      overflow: hidden; margin-bottom: 8px;
+    }
+    .timer-bar {
+      height: 100%; background: var(--accent);
+      border-radius: 6px;
+      transition: width 1s linear, background .3s;
+    }
+    .timer-text {
+      font-size: 12px; color: var(--text-3);
+      text-align: right; margin-bottom: 24px;
+      font-family: 'Geist Mono', monospace;
+    }
+    .timer-text.warn { color: #f59e0b; }
+    .timer-text.critical { color: var(--red); }
+
+    /* OTP INPUT ROW */
+    .otp-row {
+      display: flex; gap: 10px; justify-content: center;
+      margin-bottom: 24px;
+    }
+    .otp-digit {
+      width: 52px; height: 60px;
+      background: var(--surface-2);
+      border: 1.5px solid var(--border-2);
+      border-radius: 10px;
+      font-size: 22px; font-weight: 600;
+      font-family: 'Geist Mono', monospace;
+      color: var(--text-1);
+      text-align: center;
+      outline: none;
+      caret-color: var(--accent);
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .otp-digit:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99,102,241,.15);
+    }
+    .otp-digit.filled { border-color: rgba(99,102,241,.4); }
+    .otp-digit.error-shake { border-color: var(--red); animation: shake .3s ease; }
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      25% { transform: translateX(-4px); }
+      75% { transform: translateX(4px); }
+    }
+
+    /* ERROR */
+    .error-box {
+      background: var(--red-bg);
+      border: 1px solid rgba(239,68,68,.2);
+      border-radius: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--red);
+      margin-bottom: 18px;
+      display: flex; align-items: center; gap: 8px;
+    }
+
+    /* SUBMIT */
+    .btn-verify {
+      width: 100%; padding: 13px;
+      background: var(--accent); color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 14.5px; font-weight: 600;
+      font-family: 'Geist', sans-serif;
+      cursor: pointer; transition: background .15s, transform .1s;
+      letter-spacing: -.01em;
+    }
+    .btn-verify:hover { background: var(--accent-d); }
+    .btn-verify:active { transform: scale(.99); }
+    .btn-verify:disabled { opacity: .5; cursor: not-allowed; }
+
+    .footer-links {
+      display: flex; justify-content: space-between; align-items: center;
+      margin-top: 18px;
+    }
+    .back-link {
+      font-size: 12.5px; color: var(--text-3);
+      text-decoration: none; transition: color .15s;
+    }
+    .back-link:hover { color: var(--text-2); }
+
+    .resend-hint {
+      font-size: 12px; color: var(--text-3); text-align: center;
+      margin-top: 16px;
+    }
+    .resend-hint a { color: var(--accent); text-decoration: none; }
+    .resend-hint a:hover { text-decoration: underline; }
+
+    /* EXPIRED STATE */
+    .expired-card { text-align: center; }
+    .expired-icon { font-size: 40px; margin-bottom: 16px; opacity: .6; }
+  </style>
+</head>
+<body data-has-error="{{ '1' if error else '0' }}">
+
+<div class="card {% if expired %}expired-card{% endif %}">
+
+  {% if expired %}
+    <div class="expired-icon">⏰</div>
+    <h1>OTP Expired</h1>
+    <p class="sub" style="text-align:center;margin-bottom:28px">{{ error }}</p>
+    <a href="/login" style="display:block;text-align:center;padding:13px;background:var(--accent);color:#fff;border-radius:10px;font-size:14px;font-weight:600;text-decoration:none">Back to Login</a>
+
+  {% else %}
+    <h1>Verify your identity</h1>
+    <p class="sub">
+      A 6-digit OTP has been sent to the master email.<br>
+      Logging in as <strong>{{ username }}</strong>.
+    </p>
+
+    <!-- TIMER -->
+    <div class="timer-bar-wrap">
+      <div class="timer-bar" id="timerBar" style="width:100%"></div>
+    </div>
+    <div class="timer-text" id="timerText">5:00 remaining</div>
+
+    <!-- ERROR -->
+    {% if error %}
+    <div class="error-box">⚠ {{ error }}</div>
+    {% endif %}
+
+    <form method="POST" id="otpForm" action="/verify-otp/{{ token }}">
+      <!-- Hidden full OTP value submitted -->
+      <input type="hidden" name="otp" id="otpHidden">
+
+      <div class="otp-row" id="otpRow">
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="one-time-code" id="d0">
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" id="d1">
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" id="d2">
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" id="d3">
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" id="d4">
+        <input class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" id="d5">
+      </div>
+
+      <button type="submit" class="btn-verify" id="verifyBtn" disabled>Verify OTP</button>
+    </form>
+
+    <div class="footer-links">
+      <a href="/login" class="back-link">← Back to login</a>
+    </div>
+    <p class="resend-hint">Didn't get it? <a href="/login">Request a new OTP</a></p>
+  {% endif %}
+    <div id="timerData" data-remaining="{{ remaining }}"></div>
+</div>
+
+<script>
+  // ── TIMER ──
+  const TOTAL = parseInt(document.getElementById('timerData').dataset.remaining, 10);
+  let left = TOTAL;
+  const bar = document.getElementById('timerBar');
+  const txt = document.getElementById('timerText');
+
+  function tick() {
+    left--;
+    if (left <= 0) {
+      bar.style.width = '0%';
+      bar.style.background = 'var(--red)';
+      txt.textContent = 'Expired';
+      txt.className = 'timer-text critical';
+      document.getElementById('verifyBtn').disabled = true;
+      document.querySelectorAll('.otp-digit').forEach(d => d.disabled = true);
+      setTimeout(() => window.location.href = '/login', 2000);
+      return;
+    }
+    const pct = (left / TOTAL) * 100;
+    bar.style.width = pct + '%';
+    if (left <= 30) {
+      bar.style.background = 'var(--red)';
+      txt.className = 'timer-text critical';
+    } else if (left <= 60) {
+      bar.style.background = '#f59e0b';
+      txt.className = 'timer-text warn';
+    }
+    const m = Math.floor(left / 60);
+    const s = String(left % 60).padStart(2, '0');
+    txt.textContent = m + ':' + s + ' remaining';
+    setTimeout(tick, 1000);
+  }
+  if (TOTAL > 0) setTimeout(tick, 1000);
+
+  // ── OTP INPUT LOGIC ──
+  const digits = Array.from({length:6}, (_, i) => document.getElementById('d' + i));
+  const btn = document.getElementById('verifyBtn');
+  const hidden = document.getElementById('otpHidden');
+
+  function updateSubmit() {
+    const val = digits.map(d => d.value).join('');
+    hidden.value = val;
+    btn.disabled = val.length < 6;
+    digits.forEach(d => d.classList.toggle('filled', d.value !== ''));
+  }
+
+  digits.forEach((input, i) => {
+    input.addEventListener('input', e => {
+      // Allow only digits
+      input.value = input.value.replace(/\D/g, '').slice(-1);
+      updateSubmit();
+      if (input.value && i < 5) digits[i+1].focus();
+    });
+
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Backspace' && !input.value && i > 0) {
+        digits[i-1].value = '';
+        digits[i-1].focus();
+        updateSubmit();
+      }
+      // Allow paste handling below
+    });
+
+    input.addEventListener('paste', e => {
+      e.preventDefault();
+      const text = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+      text.split('').forEach((ch, idx) => {
+        if (digits[idx]) digits[idx].value = ch;
+      });
+      const next = Math.min(text.length, 5);
+      digits[next].focus();
+      updateSubmit();
+    });
+  });
+
+  // Auto-focus first digit
+  digits[0].focus();
+
+  // Shake digits on error — pure JS, no Jinja inside script
+  if (document.body.dataset.hasError === '1') {
+    digits.forEach(d => {
+      d.classList.add('error-shake');
+      setTimeout(() => d.classList.remove('error-shake'), 400);
+    });
+  }
+</script>
+</body>
+</html>

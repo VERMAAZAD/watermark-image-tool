@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Watermark Generator</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/index.css') }}">
+</head>
+<body>
+
+<div class="card">
+
+  <div class="card-header">
+    <div class="card-header-left">
+      <div class="logo-mark">🖼</div>
+      <div>
+        <div class="card-title">Watermark Generator</div>
+        <div class="card-subtitle">Logged in as <strong>{{ username }}</strong></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="storage-pill">
+        <span class="storage-dot"></span>
+        <span id="appSize">Loading…</span>
+      </div>
+      {% if is_master %}
+      <a href="/master" style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;background:#6366f1;color:#fff;font-size:12px;font-weight:500;text-decoration:none;">
+        👑 Admin
+      </a>
+      {% endif %}
+      <a href="/logout" style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;background:var(--bg);color:var(--text-2);font-size:12px;font-weight:500;text-decoration:none;border:1px solid var(--border);">
+        Sign out
+      </a>
+    </div>
+  </div>
+
+  <div class="card-body">
+    <div class="form-grid">
+
+      <div class="section-label">Images</div>
+
+      <div class="form-group">
+        <label>Base Images <span class="label-hint">(multiple)</span></label>
+        <input type="file" id="baseImages" accept="image/*" multiple>
+      </div>
+
+      <div class="form-group">
+        <label>Logo / Watermark</label>
+        <input type="file" id="logoImage" accept="image/*">
+      </div>
+
+      <div class="divider"></div>
+      <div class="section-label">Configuration</div>
+
+      <div class="form-group">
+        <label>Output Name</label>
+        <input type="text" id="folderName" placeholder="e.g. product_batch_01">
+      </div>
+
+      <div class="form-group">
+        <label>Total Images</label>
+        <input type="number" id="folders" value="10" min="1" max="5000">
+      </div>
+
+      <div class="form-group">
+        <label>Logo X Position</label>
+        <input type="number" id="posX" value="1085">
+      </div>
+
+      <div class="form-group">
+        <label>Logo Y Position</label>
+        <input type="number" id="posY" value="189">
+      </div>
+
+      <button class="btn-generate" id="genBtn" onclick="generateImages()">
+        Generate Images
+      </button>
+
+      <div class="status-bar" id="status">Ready — fill in the fields above to begin.</div>
+
+      <button class="btn-results" onclick="window.location.href='/results'">
+        View Results →
+      </button>
+
+    </div>
+  </div>
+</div>
+<script src="{{ url_for('static', filename='js/index.js') }}"></script>
+</body>
+</html>

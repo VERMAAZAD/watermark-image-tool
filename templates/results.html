@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Generated Results</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/results.css') }}">
+</head>
+<body>
+
+<nav class="topbar">
+  <div class="topbar-left">
+    <button class="back-btn" onclick="history.back()">← Back</button>
+    <span class="topbar-title">Watermark <span>Generator</span></span>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <span style="font-size:13px;color:#667085">{{ username }}</span>
+    {% if is_master %}
+    <a href="/master" style="display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:20px;background:#6366f1;color:#fff;font-size:12px;font-weight:500;text-decoration:none;">👑 Admin</a>
+    {% endif %}
+    <a href="/logout" style="font-size:12px;color:#667085;text-decoration:none;padding:5px 10px;border:1px solid #e4e7ec;border-radius:6px;">Sign out</a>
+  </div>
+</nav>
+
+<main class="main">
+  <div class="page-header">
+    <h1>Generated Results <small id="tableCount"></small></h1>
+  </div>
+
+  <div id="content">
+    <div class="loading-state">
+      <div class="spinner-ring"></div>
+      <div class="loading-text">
+        <strong>Fetching results<span class="dots"></span></strong>
+        <span>Please wait a moment</span>
+      </div>
+    </div>
+  </div>
+</main>
+<script src="{{ url_for('static', filename='js/results.js') }}"></script>
+</body>
+</html>

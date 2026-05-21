@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <title>Dashboard Login</title>
+
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+
+<body>
+
+<div class="login-container">
+
+  <div class="login-card">
+
+    <div class="login-header">
+
+      <h1>Dashboard Login</h1>
+
+      <p>Secure access to watermark generator</p>
+    </div>
+
+    {% if error %}
+      <div class="error-box">
+        {{ error }}
+      </div>
+    {% endif %}
+
+    <form method="POST">
+
+      <div class="form-group">
+        <label>Username</label>
+
+        <input
+          type="text"
+          name="username"
+          placeholder="Enter username"
+          required
+        >
+      </div>
+
+      <div class="form-group">
+        <label>Password</label>
+
+        <input
+          type="password"
+          name="password"
+          placeholder="Enter password"
+          required
+        >
+      </div>
+
+      <button type="submit">
+        Login
+      </button>
+
+    </form>
+
+    <div class="login-footer">
+      Protected Dashboard Access
+    </div>
+
+  </div>
+
+</div>
+
+</body>
+</html>

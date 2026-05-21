@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Master Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/master.css') }}">
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-brand">
+    <div class="brand-badge">
+      <div class="brand-icon">👑</div>
+      <span>Master Panel</span>
+    </div>
+    <div class="brand-sub">admin console</div>
+  </div>
+
+  <nav class="nav">
+    <button class="nav-item active" onclick="showPanel('overview')" id="nav-overview">
+      <span class="nav-icon">📊</span><span>Overview</span>
+    </button>
+    <button class="nav-item" onclick="showPanel('users')" id="nav-users">
+      <span class="nav-icon">👥</span><span>Users</span>
+    </button>
+    <button class="nav-item" onclick="showPanel('activity')" id="nav-activity">
+      <span class="nav-icon">⚡</span><span>Activity</span>
+    </button>
+    <button class="nav-item" onclick="showPanel('results')" id="nav-results">
+      <span class="nav-icon">🖼</span><span>Results</span>
+    </button>
+    <hr style="border:none;border-top:1px solid var(--border);margin:8px 0">
+    <button class="nav-item" onclick="window.location.href='/'">
+      <span class="nav-icon">⚙</span><span>Generator</span>
+    </button>
+  </nav>
+
+  <div class="sidebar-footer">
+    <div class="user-pill">
+      <div class="user-avatar">M</div>
+      <div>
+        <div class="user-name">{{ display_name }}</div>
+        <div class="user-role">Master Admin</div>
+      </div>
+    </div>
+    <button class="logout-btn" onclick="window.location.href='/logout'">Sign out</button>
+  </div>
+</aside>
+
+<main class="main">
+
+  <!-- OVERVIEW PANEL -->
+  <div class="panel active" id="panel-overview">
+    <div class="page-title">Overview</div>
+    <div class="page-sub">System health and usage at a glance</div>
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card accent-purple">
+        <div class="stat-label">Total Users</div>
+        <div class="stat-value" id="stat-users">—</div>
+        <div class="stat-sub" id="stat-users-sub">loading…</div>
+      </div>
+      <div class="stat-card accent-green">
+        <div class="stat-label">Images Generated</div>
+        <div class="stat-value" id="stat-images">—</div>
+        <div class="stat-sub" id="stat-images-sub">loading…</div>
+      </div>
+      <div class="stat-card accent-amber">
+        <div class="stat-label">Total Jobs</div>
+        <div class="stat-value" id="stat-jobs">—</div>
+        <div class="stat-sub" id="stat-jobs-sub">loading…</div>
+      </div>
+    </div>
+    <div class="section-card">
+      <div class="section-head">
+        <div>
+          <div class="section-head-title">Recent Activity</div>
+          <div class="section-head-sub">Last 10 jobs across all users</div>
+        </div>
+        <button class="btn btn-outline btn-sm" onclick="loadActivity()">↻ Refresh</button>
+      </div>
+      <div id="recentActivity"><div class="empty-state"><div class="spin"></div></div></div>
+    </div>
+  </div>
+
+  <!-- USERS PANEL -->
+  <div class="panel" id="panel-users">
+    <div class="page-title">User Management</div>
+    <div class="page-sub">Create, edit and control user accounts</div>
+    <div id="userAlert" class="alert"></div>
+    <div class="section-card">
+      <div class="section-head">
+        <div>
+          <div class="section-head-title">All Users</div>
+          <div class="section-head-sub" id="userCountLabel">loading…</div>
+        </div>
+        <button class="btn btn-primary" onclick="openCreateModal()">+ New User</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>User</th><th>Username</th><th>Status</th>
+              <th>Jobs</th><th>Images</th><th>Last Active</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody">
+            <tr><td colspan="7"><div class="empty-state"><div class="spin"></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ACTIVITY PANEL -->
+  <div class="panel" id="panel-activity">
+    <div class="page-title">Job Activity</div>
+    <div class="page-sub">All jobs across all users — newest first</div>
+    <div class="section-card">
+      <div class="section-head">
+        <div><div class="section-head-title">Job Log</div></div>
+        <button class="btn btn-outline btn-sm" onclick="loadFullActivity()">↻ Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+           <tr>
+            <th>Folder</th><th>User</th><th>Images</th><th>Status</th><th>Time</th><th>Actions</th>
+          </tr>
+          </thead>
+          <tbody id="activityTableBody">
+            <tr><td colspan="5"><div class="empty-state"><div class="spin"></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS PANEL -->
+  <div class="panel" id="panel-results">
+    <div class="page-title" id="results-page-title">All Results</div>
+    <div class="page-sub" id="results-page-sub">Browse work by user → job → images</div>
+    <div class="results-breadcrumb" id="results-breadcrumb" style="display:none"></div>
+    <div class="results-toolbar" id="results-toolbar">
+      <div class="results-search-wrap">
+        <span class="results-search-icon">🔍</span>
+        <input class="results-search" id="resultsSearch" type="text"
+               placeholder="Search users…" oninput="resultsSearchHandler()">
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="loadResults()">↻ Refresh</button>
+    </div>
+    <div id="resultsDynamic">
+      <div class="empty-state"><div class="spin"></div></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- CREATE USER MODAL -->
+<div class="modal-overlay" id="createModal">
+  <div class="modal">
+    <div class="modal-title">Create New User</div>
+    <div class="modal-sub">User will be able to log in immediately</div>
+    <div class="form-group">
+      <label>Display Name</label>
+      <input type="text" id="newDisplayName" placeholder="e.g. John Doe">
+    </div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="newUsername" placeholder="e.g. john">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="newPassword" placeholder="Set a strong password">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('createModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="createUser()">Create User</button>
+    </div>
+  </div>
+</div>
+
+<!-- EDIT USER MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title">Edit User</div>
+    <div class="modal-sub" id="editModalSub"></div>
+    <input type="hidden" id="editUsername">
+    <div class="form-group">
+      <label>Display Name</label>
+      <input type="text" id="editDisplayName">
+    </div>
+    <div class="form-group">
+      <label>New Password <span style="color:var(--text-3);font-weight:400">(leave blank to keep)</span></label>
+      <input type="password" id="editPassword" placeholder="Leave blank to keep current">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeModal('editModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEdit()">Save Changes</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  /* ══════════════════════════════════════════════
+     PANEL ROUTING — single unified showPanel
+  ══════════════════════════════════════════════ */
+  function showPanel(name) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    document.getElementById('panel-' + name).classList.add('active');
+    const nav = document.getElementById('nav-' + name);
+    if (nav) nav.classList.add('active');
+    if (name === 'overview')  { loadStats(); loadActivity(); }
+    if (name === 'users')     loadUsers();
+    if (name === 'activity')  loadFullActivity();
+    if (name === 'results')   loadResults();
+  }
+
+  /* ══════════════════════════════════════════════
+     SHARED HELPERS
+  ══════════════════════════════════════════════ */
+  function fmtTime(ts) {
+    if (!ts) return '—';
+    const d = new Date(ts * 1000);
+    return d.toLocaleDateString() + ' ' + d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+  }
+  function timeAgo(ts) {
+    if (!ts) return 'Never';
+    const diff = Date.now() / 1000 - ts;
+    if (diff < 60)    return 'just now';
+    if (diff < 3600)  return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
+
+  /* ══════════════════════════════════════════════
+     OVERVIEW
+  ══════════════════════════════════════════════ */
+  async function loadStats() {
+    const r = await fetch('/api/master/stats');
+    const d = await r.json();
+    document.getElementById('stat-users').textContent     = d.total_users;
+    document.getElementById('stat-users-sub').textContent = d.active_users + ' active';
+    document.getElementById('stat-images').textContent    = d.total_images.toLocaleString();
+    document.getElementById('stat-images-sub').textContent= d.recent_images.toLocaleString() + ' this week';
+    document.getElementById('stat-jobs').textContent      = d.total_jobs;
+    document.getElementById('stat-jobs-sub').textContent  = d.recent_jobs + ' this week';
+  }
+
+  async function loadActivity() {
+    const r    = await fetch('/api/master/jobs');
+    const jobs = await r.json();
+    const el   = document.getElementById('recentActivity');
+    if (!jobs.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>No jobs yet</div>';
+      return;
+    }
+    el.innerHTML = jobs.slice(0, 10).map(j => `
+      <div class="job-entry">
+        <div class="job-dot ${j.status}"></div>
+        <div class="job-info">
+          <div class="job-folder">${j.folder_name}</div>
+          <div class="job-meta">by <strong>${j.username}</strong> · ${j.num_images} images</div>
+        </div>
+        <div class="job-time">${timeAgo(j.created_at)}</div>
+      </div>
+    `).join('');
+  }
+
+  /* ══════════════════════════════════════════════
+     USERS
+  ══════════════════════════════════════════════ */
+  async function loadUsers() {
+    const r     = await fetch('/api/master/users');
+    const users = await r.json();
+    document.getElementById('userCountLabel').textContent =
+      users.length + ' user' + (users.length !== 1 ? 's' : '');
+    const tbody = document.getElementById('usersTableBody');
+    if (!users.length) {
+      tbody.innerHTML = '<tr><td colspan="7"><div class="empty-state"><div class="empty-icon">👤</div>No users yet</div></td></tr>';
+      return;
+    }
+    tbody.innerHTML = users.map(u => `
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:9px">
+            <div style="width:30px;height:30px;border-radius:50%;background:var(--accent-glow);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--accent);flex-shrink:0">
+              ${(u.display_name || u.username).charAt(0).toUpperCase()}
+            </div>
+            <span style="font-size:13px;font-weight:500;color:var(--text-1)">${u.display_name || u.username}</span>
+          </div>
+        </td>
+        <td><span class="td-mono">${u.username}</span></td>
+        <td>
+          <span class="badge ${u.active ? 'badge-green' : 'badge-red'}">
+            <span class="badge-dot"></span>${u.active ? 'Active' : 'Disabled'}
+          </span>
+        </td>
+        <td style="color:var(--text-1);font-weight:500">${u.total_jobs}</td>
+        <td style="color:var(--text-1)">${u.total_images.toLocaleString()}</td>
+        <td style="font-size:12px;color:var(--text-3)">${timeAgo(u.last_active)}</td>
+        <td>
+          <div class="row-actions">
+            <button class="btn btn-outline btn-sm"
+              onclick="openEditModal('${u.username}','${u.display_name}')">Edit</button>
+            <button class="btn btn-sm ${u.active ? 'btn-danger' : 'btn-success'}"
+              onclick="toggleUser('${u.username}', ${!u.active})">
+              ${u.active ? 'Disable' : 'Enable'}
+            </button>
+            <button class="btn btn-danger btn-sm"
+              onclick="deleteUser('${u.username}')">Delete</button>
+          </div>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  /* ══════════════════════════════════════════════
+     ACTIVITY
+  ══════════════════════════════════════════════ */
+ async function loadFullActivity() {
+  const r    = await fetch('/api/master/jobs');
+  const jobs = await r.json();
+  const tbody = document.getElementById('activityTableBody');
+  if (!jobs.length) {
+    tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📭</div>No jobs yet</div></td></tr>';
+    return;
+  }
+  const statusBadge = s => {
+    const map = {done:'badge-green',error:'badge-red',processing:'badge-amber',queued:'badge-purple'};
+    return `<span class="badge ${map[s]||'badge-purple'}"><span class="badge-dot"></span>${s}</span>`;
+  };
+  tbody.innerHTML = jobs.map(j => `
+    <tr>
+      <td class="td-mono">${j.folder_name}</td>
+      <td><span style="font-size:13px;color:var(--text-1);font-weight:500">${j.username}</span></td>
+      <td>${j.num_images}</td>
+      <td>${statusBadge(j.status)}</td>
+      <td style="font-size:12px;color:var(--text-3);font-family:var(--mono)">${fmtTime(j.created_at)}</td>
+      <td>
+        <button class="btn btn-danger btn-sm" data-jobid="${j.job_id}" onclick="deleteJob(this)">Delete</button>
+      </td>
+    </tr>
+  `).join('');
+}
+
+  /* ══════════════════════════════════════════════
+     MODALS
+  ══════════════════════════════════════════════ */
+  function openCreateModal() {
+    document.getElementById('newDisplayName').value = '';
+    document.getElementById('newUsername').value    = '';
+    document.getElementById('newPassword').value    = '';
+    document.getElementById('createModal').classList.add('open');
+  }
+
+  function openEditModal(username, displayName) {
+    document.getElementById('editUsername').value    = username;
+    document.getElementById('editDisplayName').value = displayName;
+    document.getElementById('editPassword').value    = '';
+    document.getElementById('editModalSub').textContent = 'Editing: ' + username;
+    document.getElementById('editModal').classList.add('open');
+  }
+
+  function closeModal(id) {
+    document.getElementById(id).classList.remove('open');
+  }
+
+  function showAlert(msg, type = 'success') {
+    const el = document.getElementById('userAlert');
+    el.textContent = msg;
+    el.className   = 'alert alert-' + type + ' show';
+    setTimeout(() => el.className = 'alert', 3500);
+  }
+
+  /* ══════════════════════════════════════════════
+     USER CRUD
+  ══════════════════════════════════════════════ */
+  async function createUser() {
+    const display_name = document.getElementById('newDisplayName').value.trim();
+    const username     = document.getElementById('newUsername').value.trim();
+    const password     = document.getElementById('newPassword').value.trim();
+    if (!username || !password) { showAlert('Username and password required', 'error'); return; }
+    const r = await fetch('/api/master/users', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username, password, display_name})
+    });
+    const d = await r.json();
+    if (d.success) {
+      closeModal('createModal');
+      showAlert('User "' + username + '" created successfully');
+      loadUsers();
+    } else {
+      showAlert(d.error || 'Failed to create user', 'error');
+    }
+  }
+
+  async function saveEdit() {
+    const username     = document.getElementById('editUsername').value;
+    const display_name = document.getElementById('editDisplayName').value.trim();
+    const password     = document.getElementById('editPassword').value.trim();
+    const body = {display_name};
+    if (password) body.password = password;
+    const r = await fetch('/api/master/users/' + username, {
+      method: 'PUT', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(body)
+    });
+    const d = await r.json();
+    if (d.success) {
+      closeModal('editModal');
+      showAlert('User updated successfully');
+      loadUsers();
+    } else {
+      showAlert(d.error || 'Failed to update', 'error');
+    }
+  }
+
+  async function toggleUser(username, active) {
+    const r = await fetch('/api/master/users/' + username, {
+      method: 'PUT', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({active})
+    });
+    const d = await r.json();
+    if (d.success) { showAlert('User ' + (active ? 'enabled' : 'disabled')); loadUsers(); }
+    else showAlert(d.error || 'Failed', 'error');
+  }
+
+  async function deleteUser(username) {
+    if (!confirm('Delete user "' + username + '"? This cannot be undone.')) return;
+    const r = await fetch('/api/master/users/' + username, {method: 'DELETE'});
+    const d = await r.json();
+    if (d.success) { showAlert('User deleted'); loadUsers(); }
+    else showAlert(d.error || 'Failed', 'error');
+  }
+
+  /* ══════════════════════════════════════════════
+     RESULTS — STATE
+  ══════════════════════════════════════════════ */
+  let _resultsData     = [];
+  let _currentUser     = null;
+  let _currentJob      = null;
+  let _lastResultsFetch = 0;
+
+  /* ══════════════════════════════════════════════
+     RESULTS — LOAD / NAVIGATE
+  ══════════════════════════════════════════════ */
+  async function loadResults(force) {
+    _currentUser = null;
+    _currentJob  = null;
+    showResultsToolbar(true);
+    setResultsHeader('All Results', 'Browse work by user → job → images');
+    setBreadcrumb([]);
+
+    // Skip refetch if data is fresh (< 30s) unless forced
+    if (!force && _resultsData.length && Date.now() - _lastResultsFetch < 30000) {
+      renderUserLevel(_resultsData);
+      return;
+    }
+
+    const el = document.getElementById('resultsDynamic');
+    el.innerHTML = '<div class="empty-state"><div class="spin"></div></div>';
+    try {
+      const r      = await fetch('/api/master/results');
+      _resultsData = await r.json();
+      _lastResultsFetch = Date.now();
+      renderUserLevel(_resultsData);
+    } catch (e) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">⚠️</div>Failed to load — check console</div>';
+    }
+  }
+
+  function openUser(username) {
+    _currentUser = username;
+    _currentJob  = null;
+    const user   = _resultsData.find(u => u.username === username);
+    if (!user) return;
+    showResultsToolbar(false);
+    setResultsHeader(
+      user.display_name || username,
+      `${user.total_jobs} job${user.total_jobs !== 1 ? 's' : ''} · ${user.total_images.toLocaleString()} images`
+    );
+    setBreadcrumb([
+      {label: 'All Users', fn: () => loadResults(true)},
+      {label: user.display_name || username, current: true}
+    ]);
+    renderJobLevel(user.jobs);
+  }
+
+  function openJob(idx) {
+    const user = _resultsData.find(u => u.username === _currentUser);
+    if (!user) return;
+    const job  = user.jobs[idx];
+    if (!job)  return;
+    _currentJob = job.folder_name;
+    showResultsToolbar(false);
+    setResultsHeader(
+      job.folder_name,
+      `${job.images.length} image${job.images.length !== 1 ? 's' : ''} · ${fmtTime(job.created_at)}`
+    );
+    setBreadcrumb([
+      {label: 'All Users',                       fn: () => loadResults(true)},
+      {label: user.display_name || user.username, fn: () => openUser(user.username)},
+      {label: job.folder_name, current: true}
+    ]);
+    renderImageLevel(job);
+  }
+
+  /* ══════════════════════════════════════════════
+     RESULTS — LEVEL 1: USER GRID
+  ══════════════════════════════════════════════ */
+  function renderUserLevel(data) {
+    const el = document.getElementById('resultsDynamic');
+    if (!data.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">📂</div>No results yet</div>';
+      return;
+    }
+    el.innerHTML = `<div class="user-folder-grid">${data.map(u => `
+      <div class="user-folder-card" data-username="${u.username.replace(/"/g,'&quot;')}">
+        <div class="ufc-avatar">${(u.display_name || u.username).charAt(0).toUpperCase()}</div>
+        <div class="ufc-name">${u.display_name || u.username}</div>
+        <div class="ufc-username">@${u.username}</div>
+        <div class="ufc-stats">
+          <div class="ufc-stat">
+            <div class="ufc-stat-val">${u.total_jobs}</div>
+            <div class="ufc-stat-label">Jobs</div>
+          </div>
+          <div class="ufc-stat">
+            <div class="ufc-stat-val">${u.total_images.toLocaleString()}</div>
+            <div class="ufc-stat-label">Images</div>
+          </div>
+        </div>
+        <div class="ufc-last">Last active: ${timeAgo(u.last_active)}</div>
+        <span class="ufc-arrow">→</span>
+      </div>
+    `).join('')}</div>`;
+    // Attach click handlers after render — no inline onclick needed
+    el.querySelectorAll('.user-folder-card').forEach(card => {
+      card.addEventListener('click', () => openUser(card.dataset.username));
+    });
+  }
+
+  /* ══════════════════════════════════════════════
+     RESULTS — LEVEL 2: JOB LIST
+  ══════════════════════════════════════════════ */
+  function renderJobLevel(jobs) {
+    const el = document.getElementById('resultsDynamic');
+    if (!jobs.length) {
+      el.innerHTML = '<div class="empty-state"><div class="empty-icon">📭</div>No jobs for this user</div>';
+      return;
+    }
+    const statusBadge = s => {
+      const map = {done:'badge-green',error:'badge-red',processing:'badge-amber',queued:'badge-purple',unknown:'badge-purple'};
+      return `<span class="badge ${map[s]||'badge-purple'}"><span class="badge-dot"></span>${s}</span>`;
+    };
+    // Pass numeric index to openJob — avoids single-quote injection
+    el.innerHTML = `<div class="jobs-list">${jobs.map((j, idx) => {
+      const previews = j.images.slice(0, 3);
+      const extra    = j.images.length - previews.length;
+      return `
+      <div class="job-row-card" onclick="openJob(${idx})">
+        <div class="jrc-dot ${j.status}"></div>
+        <div class="jrc-info">
+          <div class="jrc-name">${j.folder_name}</div>
+          <div class="jrc-meta">
+            ${j.images.length} images · ${fmtTime(j.created_at)} · ${statusBadge(j.status)}
+          </div>
+        </div>
+        <div class="jrc-thumbs">
+          ${previews.map(img => `
+            <img class="jrc-thumb" src="${img.path}" alt="" onerror="this.style.display='none'">
+          `).join('')}
+          ${extra > 0 ? `<div class="jrc-thumb-more">+${extra}</div>` : ''}
+        </div>
+        <span class="jrc-arrow">›</span>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
+  /* ══════════════════════════════════════════════
+     RESULTS — LEVEL 3: IMAGE GRID
+  ══════════════════════════════════════════════ */
+  function renderImageLevel(job) {
+    const el = document.getElementById('resultsDynamic');
+
+    // Use data-url attribute instead of inline onclick string — avoids XSS
+    const cardsHtml = job.images.length
+      ? job.images.map(img => `
+        <div class="image-detail-card">
+          <div class="idc-img-wrap">
+            <img class="idc-img" src="${img.path}" alt="${img.name}"
+                 onerror="this.src='';this.style.background='var(--surface-2)'">
+            <a class="idc-open-btn" href="${img.url}" target="_blank" title="Open full image">🔗</a>
+          </div>
+          <div class="idc-info">
+            <div class="idc-name">${img.name}</div>
+            <a class="idc-url" href="${img.url}" target="_blank" title="${img.url}">${img.url}</a>
+            <button class="idc-copy" data-url="${img.url.replace(/"/g,'&quot;')}" onclick="copyUrl(this)">
+              📋 Copy URL
+            </button>
+          </div>
+        </div>
+      `).join('')
+      : '<div class="empty-state" style="grid-column:1/-1"><div class="empty-icon">🖼</div>No images found</div>';
+
+    el.innerHTML = `
+      <div class="job-detail-header">
+        <div class="job-detail-meta">
+          <span>📁 <strong>${job.folder_name}</strong></span>
+          <span>🖼 <strong>${job.images.length}</strong> images</span>
+          <span>🕐 <strong>${fmtTime(job.created_at)}</strong></span>
+        </div>
+        <div class="detail-actions">
+          <button class="btn btn-outline btn-sm" onclick="copyAllUrls()">📋 Copy All URLs</button>
+          <button class="btn btn-outline btn-sm" onclick="downloadCurrentCSV()">⬇ Download CSV</button>
+        </div>
+      </div>
+      <div class="image-detail-grid">${cardsHtml}</div>
+    `;
+  }
+
+  /* ══════════════════════════════════════════════
+     RESULTS — HELPERS
+  ══════════════════════════════════════════════ */
+  function setResultsHeader(title, sub) {
+    document.getElementById('results-page-title').textContent = title;
+    document.getElementById('results-page-sub').textContent   = sub;
+  }
+
+  function showResultsToolbar(show) {
+    document.getElementById('results-toolbar').style.display = show ? 'flex' : 'none';
+  }
+
+  function setBreadcrumb(crumbs) {
+    const bc = document.getElementById('results-breadcrumb');
+    if (!crumbs.length) { bc.style.display = 'none'; return; }
+    bc.style.display = 'flex';
+    bc.innerHTML = '';
+    crumbs.forEach((c, i) => {
+      if (i > 0) {
+        const sep = document.createElement('span');
+        sep.className = 'bc-sep';
+        sep.textContent = '›';
+        bc.appendChild(sep);
+      }
+      if (c.current) {
+        const span = document.createElement('span');
+        span.className = 'bc-current';
+        span.textContent = c.label;
+        bc.appendChild(span);
+      } else {
+        const btn = document.createElement('button');
+        btn.className = 'bc-link';
+        btn.textContent = c.label;
+        btn.addEventListener('click', c.fn);
+        bc.appendChild(btn);
+      }
+    });
+  }
+
+  function resultsSearchHandler() {
+    if (_currentUser || _currentJob) return;
+    const q = document.getElementById('resultsSearch').value.toLowerCase().trim();
+    renderUserLevel(q
+      ? _resultsData.filter(u =>
+          (u.display_name || '').toLowerCase().includes(q) ||
+          u.username.toLowerCase().includes(q))
+      : _resultsData
+    );
+  }
+
+  // Reads URL from data attribute — safe against XSS
+  function copyUrl(btn) {
+    const url = btn.dataset.url;
+    navigator.clipboard.writeText(url).then(() => {
+      btn.classList.add('copied');
+      btn.textContent = '✓ Copied';
+      setTimeout(() => { btn.classList.remove('copied'); btn.innerHTML = '📋 Copy URL'; }, 2000);
+    });
+  }
+
+  function copyAllUrls() {
+    const user = _resultsData.find(u => u.username === _currentUser);
+    if (!user) return;
+    const job  = user.jobs.find(j => j.folder_name === _currentJob);
+    if (!job)  return;
+    const urls = job.images.map(i => i.url).join('\n');
+    navigator.clipboard.writeText(urls).then(() => {
+      alert(`✓ Copied ${job.images.length} URLs to clipboard`);
+    });
+  }
+
+  function downloadCurrentCSV() {
+    const user = _resultsData.find(u => u.username === _currentUser);
+    if (!user) return;
+    const job  = user.jobs.find(j => j.folder_name === _currentJob);
+    if (!job)  return;
+    const header = 'image_name,url\n';
+    const body   = job.images.map(i => `"${i.name}","${i.url}"`).join('\n');
+    const blob   = new Blob([header + body], {type: 'text/csv'});
+    const a      = document.createElement('a');
+    a.href       = URL.createObjectURL(blob);
+    a.download   = job.folder_name + '.csv';
+    a.click();
+  }
+
+  /* ══════════════════════════════════════════════
+     INIT
+  ══════════════════════════════════════════════ */
+  document.querySelectorAll('.modal-overlay').forEach(el => {
+    el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+  });
+
+  loadStats();
+  loadActivity();
+
+
+  async function deleteJob(btn) {
+  const job_id = btn.dataset.jobid;
+  if (!confirm(`Delete job "${job_id}"?\n\nThis will permanently remove the log entry AND all generated images from disk. This cannot be undone.`)) return;
+  btn.disabled = true;
+  btn.textContent = '…';
+  const r = await fetch('/api/master/jobs/' + job_id, { method: 'DELETE' });
+  const d = await r.json();
+  if (d.success) {
+    loadFullActivity();
+  } else {
+    alert(d.error || 'Failed to delete job');
+    btn.disabled = false;
+    btn.textContent = 'Delete';
+  }
+}
+</script>
+
+</body>
+</html>
