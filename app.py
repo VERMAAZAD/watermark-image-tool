@@ -44,6 +44,9 @@ app = Flask(__name__, static_folder="static")
 CORS(app)
 app.secret_key = SECRET_KEY
 
+from werkzeug.middleware.proxy_fix import ProxyFix
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1)
+
 OUTPUT_FOLDER = "images"
 UPLOAD_BASE = "uploads/base"
 UPLOAD_LOGO = "uploads/logo"
