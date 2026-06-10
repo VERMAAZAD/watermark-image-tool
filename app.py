@@ -11,6 +11,7 @@ import threading
 import subprocess
 import smtplib
 import secrets
+import tempfile
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from uuid import uuid4
@@ -85,17 +86,31 @@ def save_users(users):
     with open(USERS_FILE, "w") as f:
         json.dump(users, f, indent=2)
 
-def load_jobs_log():
+JOBS = {}
+_jobs_log_lock = threading.Lock()
+
+def _read_jobs_log():
+    """Internal: read without lock. Caller must hold _jobs_log_lock."""
     if not os.path.exists(JOBS_LOG_FILE):
         return []
     with open(JOBS_LOG_FILE, "r") as f:
         return json.load(f)
 
-def save_jobs_log(log):
-    with open(JOBS_LOG_FILE, "w") as f:
-        json.dump(log, f, indent=2)
+def _write_jobs_log(log):
+    """Internal: write without lock. Caller must hold _jobs_log_lock."""
+    dir_name = os.path.dirname(JOBS_LOG_FILE) or "."
+    with tempfile.NamedTemporaryFile("w", dir=dir_name, delete=False, suffix=".tmp") as tmp:
+        json.dump(log, tmp, indent=2)
+        tmp_path = tmp.name
+    os.replace(tmp_path, JOBS_LOG_FILE)
 
-JOBS = {}
+def load_jobs_log():
+    with _jobs_log_lock:
+        return _read_jobs_log()
+
+def save_jobs_log(log):
+    with _jobs_log_lock:
+        _write_jobs_log(log)
 
 # ================== OTP HELPERS ==================
 def generate_otp():
@@ -358,7 +373,7 @@ def _update_job_log(job_id, status, error=None):
             if error:
                 entry["error"] = error
             break
-    save_jobs_log(log)
+    _write_jobs_log(log)
 
 @app.route("/api/job-status/<job_id>")
 def job_status(job_id):

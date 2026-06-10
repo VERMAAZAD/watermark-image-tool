@@ -1,1 +1,29 @@
-[]
+[
+  {
+    "job_id": "68335e03-4b63-4950-ba78-2d74c56b0205",
+    "username": "azad",
+    "folder_name": "asdfg",
+    "num_images": 100,
+    "status": "error",
+    "created_at": 1781093490.9511487,
+    "base_files": [
+      "honeytoon-fav.png"
+    ],
+    "logo_file": "audifort-logo.ico",
+    "updated_at": 1781093491.0068538,
+    "error": "'NoneType' object has no attribute 'shape'"
+  },
+  {
+    "job_id": "330bd720-8590-4bad-9518-5dbd7f243f6a",
+    "username": "azad",
+    "folder_name": "1wrfd",
+    "num_images": 100,
+    "status": "done",
+    "created_at": 1781093572.4665055,
+    "base_files": [
+      "honeytoon-fav.png"
+    ],
+    "logo_file": "favicon-collagen.webp",
+    "updated_at": 1781093576.5537746
+  }
+]
